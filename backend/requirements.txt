@@ -1,0 +1,26 @@
+# =============================================================================
+# Amrit Vaayu dMRV — Python Dependencies
+# Install: pip install -r requirements.txt
+# =============================================================================
+
+# --- Web Framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- Supabase Client (PostgreSQL) ---
+supabase==2.11.0
+
+# --- Twilio (WhatsApp Integration) ---
+twilio==9.4.3
+
+# --- Groq SDK (Grok LLM Reasoning) ---
+groq==0.15.0
+
+# --- Machine Learning ---
+torch==2.5.1
+numpy==2.2.1
+pandas==2.2.3
+
+# --- Utilities ---
+python-dotenv==1.0.1
+python-multipart==0.0.20

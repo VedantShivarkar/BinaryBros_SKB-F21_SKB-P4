@@ -1,0 +1,68 @@
+# =============================================================================
+# Amrit Vaayu dMRV — .gitignore
+# Project: Cloud-Proof dMRV for Carbon Markets
+# Team: Binary Bros (Vedant Shivarkar & Akshad Kolawar)
+# =============================================================================
+
+# ---------- Environment & Secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ---------- Virtual Environments ----------
+backend/venv/
+backend/.venv/
+backend/env/
+
+# ---------- Node / React (Vite) ----------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ---------- PlatformIO (ESP32) ----------
+hardware/.pio/
+hardware/.vscode/
+hardware/lib/
+hardware/include/
+
+# ---------- IDE & OS ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- ML / Data Artifacts ----------
+*.pt
+*.pth
+*.onnx
+*.h5
+*.pkl
+*.joblib
+*.csv
+!backend/ml_models/*.csv
+
+# ---------- Logs ----------
+*.log
+logs/
