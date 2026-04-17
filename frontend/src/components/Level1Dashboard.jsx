@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Level1Dashboard() {
-  // Using synthetic test data plotting the outputs of Step 4 backend architecture
   const generateMockSAR = () => {
     let data = [];
     const baseDate = new Date();
@@ -23,24 +21,40 @@ export default function Level1Dashboard() {
   };
 
   const [sarData] = useState(generateMockSAR());
+  const [credits, setCredits] = useState([]);
+  const [totals, setTotals] = useState({ farmers: 0, reduction: 0 });
 
-  const mockCredits = [
-    { id: 'TX-901', farmer_id: 101, flux_reduction: 45.2, status: 'Verified', date: '2026-04-10' },
-    { id: 'TX-902', farmer_id: 104, flux_reduction: 12.8, status: 'Pending', date: '2026-04-12' },
-    { id: 'TX-903', farmer_id: 102, flux_reduction: 88.0, status: 'Verified', date: '2026-04-15' },
-    { id: 'TX-904', farmer_id: 103, flux_reduction: 61.1, status: 'Verified', date: '2026-04-16' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const farmersRes = await axios.get('http://127.0.0.1:8000/api/dashboard/farmers');
+        const creditsRes = await axios.get('http://127.0.0.1:8000/api/dashboard/carbon-credits');
+        
+        setTotals({
+          farmers: farmersRes.data.total_farmers,
+          reduction: creditsRes.data.total_flux_reduction.toFixed(1)
+        });
+        setCredits(creditsRes.data.data);
+      } catch (error) {
+        console.error("API Error:", error);
+      }
+    };
+    
+    fetchData();
+    const interval = setInterval(fetchData, 5000); 
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{ marginTop: '20px' }}>
       <div className="metrics-row">
         <div className="metric-card">
           <div className="metric-label">Total Verified Farmers</div>
-          <div className="metric-value glow-text-blue">42</div>
+          <div className="metric-value glow-text-blue">{totals.farmers}</div>
         </div>
         <div className="metric-card">
           <div className="metric-label">Total Flux Reduction (kg CO2e)</div>
-          <div className="metric-value glow-text-green">146.0</div>
+          <div className="metric-value glow-text-green">{totals.reduction}</div>
         </div>
       </div>
 
@@ -51,10 +65,7 @@ export default function Level1Dashboard() {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" stroke="#a0a0a5" tick={{fill: '#a0a0a5', fontSize: 12}} />
             <YAxis stroke="#a0a0a5" tick={{fill: '#a0a0a5', fontSize: 12}} domain={['auto', 'auto']} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: 'rgba(28,28,30,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-              itemStyle={{ color: '#fff' }}
-            />
+            <Tooltip contentStyle={{ backgroundColor: 'rgba(28,28,30,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }} itemStyle={{ color: '#fff' }} />
             <Legend />
             <Line type="monotone" dataKey="vv" name="VV Band (dB)" stroke="#00d4ff" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
             <Line type="monotone" dataKey="vh" name="VH Band (dB)" stroke="#00ff88" strokeWidth={3} dot={false} activeDot={{ r: 8 }} />
@@ -69,21 +80,17 @@ export default function Level1Dashboard() {
             <th>Tx ID</th>
             <th>Farmer ID</th>
             <th>Reduction (kg)</th>
-            <th>Date</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          {mockCredits.map(c => (
+          {credits.map(c => (
             <tr key={c.id}>
-              <td style={{fontWeight: 600}}>{c.id}</td>
+              <td style={{fontWeight: 600}}>AV-{c.id}</td>
               <td style={{color: 'var(--text-secondary)'}}>#{c.farmer_id}</td>
               <td className="glow-text-green">+{c.flux_reduction}</td>
-              <td>{c.date}</td>
               <td>
-                <span className={`badge ${c.status === 'Verified' ? 'wet' : 'dry'}`}>
-                  {c.status}
-                </span>
+                <span className={`badge ${c.status === 'Verified' ? 'wet' : 'dry'}`}>{c.status}</span>
               </td>
             </tr>
           ))}
