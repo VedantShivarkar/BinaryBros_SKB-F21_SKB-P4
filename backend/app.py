@@ -63,7 +63,7 @@ async def health_check():
 # Route Registration
 # ---------------------------------------------------------------------------
 from routes.dashboard_api import router as dashboard_router
-# from routes.twilio_webhook import router as twilio_router  # Step 3
+from routes.twilio_webhook import router as twilio_router
 
 app.include_router(dashboard_router, prefix="/api", tags=["Dashboard"])
-# app.include_router(twilio_router, prefix="/api", tags=["Twilio"])  # Step 3
+app.include_router(twilio_router, prefix="/api", tags=["Twilio"])
