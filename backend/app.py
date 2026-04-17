@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes.dashboard_api import router as dashboard_router
 from routes.twilio_webhook import router as twilio_router
 
@@ -17,6 +19,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 🚨 NEW: Create local media directory and mount it as a static route
+os.makedirs("static/images", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Include the dashboard API routes
 app.include_router(dashboard_router, prefix="/api/dashboard")

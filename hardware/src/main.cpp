@@ -22,8 +22,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 // Calibration parameters for capacitive moisture scaling
 // Adjust based on real dirt reading resistance!
-const int AirValue = 3500;   // Sensor in open air
-const int WaterValue = 1500; // Sensor completely submerged
+const int AirValue = 2560;   // Sensor in open air
+const int WaterValue = 1220; // Sensor completely submerged
 
 void setup() {
   Serial.begin(115200);

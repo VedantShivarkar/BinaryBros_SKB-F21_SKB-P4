@@ -43,14 +43,14 @@ def classify_image(media_url: str) -> str:
                     ],
                 }
             ],
-            model="llama-3.2-11b-vision-preview", 
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
             temperature=0.0, 
             max_tokens=5, # Limit output so it can't write a paragraph
         )
         
         # 4. Parse the output
         result = chat_completion.choices[0].message.content.strip().lower()
-        print(f"👁️ Groq Vision Output: '{result}'")
+        print(f" Vision Output: '{result}'")
         
         if "wet" in result: 
             return "Wet"

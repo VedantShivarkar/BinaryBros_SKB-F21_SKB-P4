@@ -1,27 +1,41 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Level1Dashboard from './components/Level1Dashboard';
-import Level2Map from './components/Level2Map';
+import AuditorDashboard from './components/AuditorDashboard';
+// We will create these two in the next steps:
+// import AuditorDashboard from './components/AuditorDashboard';
+// import FarmerRegistration from './components/FarmerRegistration';
+
+function Navigation() {
+  const location = useLocation();
+  const isActive = (path) => location.pathname === path ? 'active-link' : '';
+
+  return (
+    <nav className="top-nav">
+      <div className="nav-logo">
+        <span className="glow-text-green">Amrit</span> Vaayu 
+      </div>
+      <div className="nav-links">
+        <Link to="/" className={isActive('/')}>🏦 Gov Registry</Link>
+        <Link to="/auditor" className={isActive('/auditor')}>📋 Auditor View</Link>
+        <Link to="/register" className={isActive('/register')}>🌾 Farmer Portal</Link>
+      </div>
+    </nav>
+  );
+}
 
 function App() {
   return (
-    <div>
-      <header className="header">
-        <h1>Amrit Vaayu dMRV</h1>
-        <p className="glow-text-green">Cloud-Proof Digital Monitoring, Reporting & Verification</p>
-      </header>
-
-      <div className="dashboard-grid">
-        <div className="glass-panel full-width">
-          <h2>Assurance-Ready Analytics (Level 1)</h2>
-          <Level1Dashboard />
-        </div>
-        
-        <div className="glass-panel full-width">
-          <h2>Farmer Geolocation & AWD Heatmap (Level 2)</h2>
-          <Level2Map />
-        </div>
+    <Router>
+      <div className="app-container">
+        <Navigation />
+        <Routes>
+          <Route path="/" element={<Level1Dashboard />} />
+          <Route path="/auditor" element={<AuditorDashboard />} /> {/* <-- UPDATE THIS */}
+          <Route path="/register" element={<div className="glass-panel" style={{margin: '32px'}}><h2>Farmer Portal (Coming Next)</h2></div>} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 
