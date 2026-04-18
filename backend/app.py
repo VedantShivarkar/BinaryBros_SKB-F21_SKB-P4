@@ -63,8 +63,16 @@ async def mobile_upload(
     with open(filepath, "wb") as f:
         f.write(await image.read())
         
-    local_image_url = f"http://127.0.0.1:8000/static/images/{filename}"
-
+    # 2. Save Image Locally
+    img_hash = hashlib.md5(f"{farmer_id}_{time.time()}".encode()).hexdigest()
+    filename = f"{img_hash}.jpg"
+    filepath = os.path.join("static", "images", filename)
+    
+    with open(filepath, "wb") as f:
+        f.write(await image.read())
+        
+    # 🚨 PRINCIPAL FIX: Save the live cloud URL to the database, not localhost
+    local_image_url = f"https://binarybros-skb-f21-skb-p4-1.onrender.com/static/images/{filename}"
     # 3. AI Check (Local File Bypass for Vision)
     import base64
     with open(filepath, "rb") as image_file:

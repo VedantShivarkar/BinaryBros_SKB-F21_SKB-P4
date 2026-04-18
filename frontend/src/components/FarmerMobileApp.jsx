@@ -26,8 +26,9 @@ export default function FarmerMobileApp() {
           formData.append('image', file);
 
           try {
-            // Notice we use the relative path now! The Vite Proxy handles the rest.
-            const res = await axios.post('/api/mobile-upload', formData);
+            // 🚨 PRINCIPAL FIX: Bypass Vercel proxy for massive image files.
+            // Hit the Render backend directly!
+            const res = await axios.post('https://binarybros-skb-f21-skb-p4-1.onrender.com/api/mobile-upload', formData);
             setResult(res.data);
           } catch (error) {
             setResult({ success: false, reason: 'Network connection to edge server failed.' });
