@@ -29,8 +29,8 @@ export default function Level2Map() {
         <span style={{ color: '#00d4ff', marginLeft: '12px' }}>● Verified Edge Node</span>
       </p>
       <MapContainer 
-        center={[21.1458, 79.0882]} // Default to Nagpur coordinates
-        zoom={12} 
+        center={[21.004771, 79.047696]} // Default to Nagpur coordinates
+        zoom={02} 
         scrollWheelZoom={false}
       >
         <TileLayer

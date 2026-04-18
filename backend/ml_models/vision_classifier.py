@@ -31,8 +31,7 @@ def classify_image(media_url: str) -> str:
                     "content": [
                         {
                             "type": "text", 
-                            # 🚨 THE FIX: Force constrained logic for testing indoors
-                            "text": "You are a strict classifier. Look at this image. If it shows liquid water, a flooded area, or something wet, output exactly the word 'Wet'. If it shows dry dirt, a floor, a desk, indoors, or anything else, output exactly the word 'Dry'. DO NOT output any punctuation or other words."
+                            "text": "You are a strict agricultural classifier. Look at this image. 1. If the image is a room, a desk, a person, or anything that is NOT a farm field, output EXACTLY the text: 'INVALID_NOT_PADDY'. 2. If it IS a farm/paddy field and has visible standing water, output EXACTLY: 'Wet'. 3. If it is a farm field with dry soil/no standing water, output EXACTLY: 'Dry'. Say nothing else."
                         },
                         {
                             "type": "image_url",

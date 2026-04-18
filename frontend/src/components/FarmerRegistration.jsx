@@ -6,21 +6,26 @@ export default function FarmerRegistration() {
   const [parcels, setParcels] = useState([{ id: 1, coordinates: 'Pending...' }]);
   const [liveTelemetry, setLiveTelemetry] = useState(null);
 
-  // Simulating live Edge Node Telemetry by fetching the most recent AWD log
+  // Poll the SMART hardware endpoint every 3 seconds
   useEffect(() => {
     const fetchTelemetry = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/dashboard/awd-logs');
-        if (res.data.logs && res.data.logs.length > 0) {
-          // Grab the absolute latest log to act as our "Live" sensor reading
-          setLiveTelemetry(res.data.logs[0]);
+        // 🚨 FORCED ABSOLUTE URL TO BYPASS CACHE & PROXY 🚨
+        const res = await axios.get('http://127.0.0.1:8000/api/dashboard/live-esp32');
+        if (res.data && res.data.data) {
+          setLiveTelemetry(res.data.data);
+          
+          // Trigger the UI Alert if the hardware just minted a credit!
+          if (res.data.minted_just_now) {
+             alert("🌿 HARDWARE TRIGGER: Field is Dry! IoT Node automatically minted Carbon Credits to the Ledger!");
+          }
         }
       } catch (error) {
         console.error("Telemetry Error:", error);
       }
     };
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 3000); // Ping every 3 seconds for that "live" feel
+    const interval = setInterval(fetchTelemetry, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -28,10 +33,38 @@ export default function FarmerRegistration() {
     setParcels([...parcels, { id: parcels.length + 1, coordinates: 'Draw on map...' }]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert(`Registration Payload Ready for API:\nName: ${formData.name}\nPhone: ${formData.phone}\nParcels: ${parcels.length}`);
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerText;
+    btn.innerText = "Syncing to Database...";
+    btn.disabled = true;
+
+    try {
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        landSize: parseFloat(formData.landSize)
+      };
+
+      const res = await axios.post('http://127.0.0.1:8000/api/dashboard/register', payload);
+      
+      if (res.data.success) {
+        alert(`✅ Success! Farmer ${res.data.data.name} registered and synced to hardware ledger.`);
+        setFormData({ phone: '', name: '', landSize: '' });
+      }
+    } catch (error) {
+      console.error("Registration Error:", error);
+      alert("❌ Failed to connect to the database. Check your backend terminal.");
+    } finally {
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
   };
+
+  // Derive UI state directly from hardware pump status
+  const isDry = liveTelemetry?.pump_status === 'ON';
+  const stateText = isDry ? 'DRY' : 'WET';
 
   return (
     <div className="dashboard-grid" style={{padding: '32px 0'}}>
@@ -52,7 +85,7 @@ export default function FarmerRegistration() {
               onChange={e => setFormData({...formData, name: e.target.value})} required/>
           </div>
           <div>
-            <label style={{display: 'block', marginBottom: '8px', color: 'var(--text-secondary)'}}>WhatsApp Number (For Webhook)</label>
+            <label style={{display: 'block', marginBottom: '8px', color: 'var(--text-secondary)'}}>WhatsApp Number</label>
             <input type="tel" placeholder="+91 98765 43210" style={inputStyle} 
               onChange={e => setFormData({...formData, phone: e.target.value})} required/>
           </div>
@@ -95,16 +128,19 @@ export default function FarmerRegistration() {
               {/* Moisture Dial Simulation */}
               <div style={{background: '#000', padding: '24px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)'}}>
                 <div style={{color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px', textTransform: 'uppercase'}}>Soil Moisture Status</div>
-                <div style={{fontSize: '2.5rem', fontWeight: 'bold', color: liveTelemetry.state_wet_dry === 'Wet' ? 'var(--accent-blue)' : 'var(--accent-warning)'}}>
-                  {liveTelemetry.state_wet_dry}
+                <div style={{fontSize: '2.5rem', fontWeight: 'bold', color: !isDry ? 'var(--accent-blue)' : 'var(--accent-warning)'}}>
+                  {stateText}
+                </div>
+                <div style={{color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '8px'}}>
+                  Raw Value: {liveTelemetry.moisture_val}
                 </div>
               </div>
 
               {/* Pump Status */}
               <div style={{background: '#000', padding: '24px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)'}}>
                 <div style={{color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px', textTransform: 'uppercase'}}>Irrigation Pump</div>
-                <div style={{fontSize: '2rem', fontWeight: 'bold', color: liveTelemetry.state_wet_dry === 'Dry' ? '#00ff88' : '#ff4444'}}>
-                  {liveTelemetry.state_wet_dry === 'Dry' ? 'ENGAGED (ON)' : 'STANDBY (OFF)'}
+                <div style={{fontSize: '2rem', fontWeight: 'bold', color: isDry ? '#00ff88' : '#ff4444'}}>
+                  {isDry ? 'ENGAGED' : 'STANDBY'}
                 </div>
               </div>
             </div>
@@ -115,12 +151,12 @@ export default function FarmerRegistration() {
                 <li><strong>Node ID:</strong> ESP32-WROOM-32D</li>
                 <li><strong>Capacitive Calibration:</strong> Air: 2560 | Water: 1220</li>
                 <li><strong>Last Sync:</strong> {new Date(liveTelemetry.timestamp).toLocaleString()}</li>
-                <li><strong>Network:</strong> WiFi / MQTT (Secured)</li>
+                <li><strong>Network:</strong> Cloud REST Native</li>
               </ul>
             </div>
             
             <div style={{marginTop: 'auto', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem'}}>
-              Data streaming via Python Serial Bridge (COM6) ➡️ Supabase
+              Data streaming via Supabase Realtime Ledger
             </div>
           </div>
         ) : (
@@ -133,7 +169,6 @@ export default function FarmerRegistration() {
   );
 }
 
-// Simple inline styles to keep it clean
 const inputStyle = {
   width: '100%',
   padding: '10px 14px',

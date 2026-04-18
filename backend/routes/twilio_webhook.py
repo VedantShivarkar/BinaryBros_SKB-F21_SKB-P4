@@ -21,9 +21,9 @@ groq_api_key = os.environ.get("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
 
 # --- CONSTANTS & GEOFENCE ---
-FARM_LAT = 21.006042
-FARM_LNG = 79.048728
-GEOFENCE_RADIUS_METERS = 60.0 
+FARM_LAT = 21.004771
+FARM_LNG = 79.047696
+GEOFENCE_RADIUS_METERS = 60.0
 TTL_SECONDS = 60.0 # 🚨 1-Minute Expiration Timer
 
 def calculate_haversine(lat1, lon1, lat2, lon2):

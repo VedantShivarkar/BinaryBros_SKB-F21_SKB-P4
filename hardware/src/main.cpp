@@ -1,100 +1,125 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h>
 
-// --- Pin Definitions (Binary Bros Hardware Spec) ---
-// 1. DHT22 Temperature & Humidity Sensor
+// --- 1. NETWORK & CLOUD CREDENTIALS ---
+// 🚨 CHANGE THESE TO YOUR MOBILE HOTSPOT OR VENUE WIFI 🚨
+const char* WIFI_SSID = "Nord 4";
+const char* WIFI_PASSWORD = "11223344";
+
+const char* SUPABASE_URL = "https://qsyeeroqsrubasiwopny.supabase.co/rest/v1/esp32_telemetry";
+const char* SUPABASE_KEY = "sb_secret_US2EGCYXQJzishUaWWszPA_8UENi4KE";
+
+// --- 2. PIN DEFINITIONS & SENSOR VARS ---
 #define DHTPIN 4
 #define DHTTYPE DHT22
-
-// 2. Capacitive Soil Moisture Sensor (Analog reading)
-#define MOISTURE_PIN 34 // ADC1 mapping
-
-// 3. Dual Channel Relay
-#define RELAY_IN1 26 // Motor/Water Pump control
-#define RELAY_IN2 27 // Reserved / second valve
-
-// 4. Onboard Status LED (Pro Move)
+#define MOISTURE_PIN 34 
+#define RELAY_IN1 26 
+#define RELAY_IN2 27 
 #define STATUS_LED 2
 
-// Initialize DHT Sensor Class
 DHT dht(DHTPIN, DHTTYPE);
+const int AirValue = 2560;   
+const int WaterValue = 1220; 
 
-// Calibration parameters for capacitive moisture scaling
-// Adjust based on real dirt reading resistance!
-const int AirValue = 2560;   // Sensor in open air
-const int WaterValue = 1220; // Sensor completely submerged
+// --- 3. STATE TRACKING FOR DELTA SYNC (THE FIX) ---
+String lastPumpStatus = "UNKNOWN";
+unsigned long lastSyncTime = 0;
+const unsigned long HEARTBEAT_INTERVAL = 3600000; // 1 Hour in milliseconds
 
 void setup() {
   Serial.begin(115200);
   
-  // Initialize IO mapping
   pinMode(STATUS_LED, OUTPUT);
   pinMode(RELAY_IN1, OUTPUT);
   pinMode(RELAY_IN2, OUTPUT);
-  
-  // Ensure relays are OFF natively (Assume active LOW triggers)
-  digitalWrite(RELAY_IN1, HIGH);
+  digitalWrite(RELAY_IN1, HIGH); // Relay OFF natively
   digitalWrite(RELAY_IN2, HIGH);
   
   dht.begin();
+
+  // --- CONNECT TO WIFI ---
+  Serial.print("📡 Connecting to Wi-Fi: ");
+  Serial.println(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
-  // Flashing boot sequence for the onboard indicator
-  for(int i=0; i<3; i++) {
-    digitalWrite(STATUS_LED, HIGH);
-    delay(150);
-    digitalWrite(STATUS_LED, LOW);
-    delay(150);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    digitalWrite(STATUS_LED, !digitalRead(STATUS_LED)); // Blink while connecting
   }
+  
+  digitalWrite(STATUS_LED, HIGH); // Solid ON means Wi-Fi Connected
+  Serial.println("\n✅ Wi-Fi Connected!");
+  Serial.print("📍 IP Address: ");
+  Serial.println(WiFi.localIP());
 }
 
 void loop() {
-  // Pull metrics from the DHT22
+  // 1. Read Sensors locally (Happens every 2 seconds)
   float h = dht.readHumidity();
   float t = dht.readTemperature();
-
-  // Read analog frequency scaling of the moisture
   int moistureValue = analogRead(MOISTURE_PIN);
   
-  // Linearly map the reading to a 0% - 100% saturation scale
   int moisturePercent = map(moistureValue, AirValue, WaterValue, 0, 100);
-  moisturePercent = constrain(moisturePercent, 0, 100); // Guardrails
+  moisturePercent = constrain(moisturePercent, 0, 100); 
   
-  // AWD Core Logic Determination
-  // Threshold defines the point where methane flux reverses.  
+  // 2. AWD Core Logic & Relay Control
   String awdState = (moisturePercent > 60) ? "Wet" : "Dry";
-  
-  // Relay Toggle Logic
+  String pumpStatus = "OFF";
+
   if(awdState == "Dry") {
-    // Initiate flooding for AWD cycle compliance
     digitalWrite(RELAY_IN1, LOW); // Turn ON pump
-    digitalWrite(STATUS_LED, HIGH); // Indicator ON solid showing active pumping
+    pumpStatus = "ON";
   } else {
-    // Field is adequately saturated
     digitalWrite(RELAY_IN1, HIGH);  // Turn OFF pump
-    digitalWrite(STATUS_LED, LOW);   // Indicator OFF
+    pumpStatus = "OFF";
   }
 
-  // Construct rigorous JSON payload for backend processing using ArduinoJson
-  JsonDocument doc;
-  
-  // Filter NaNs to ensure parsing stability
-  if (isnan(h) || isnan(t)) {
-    doc["error"] = "DHT Read Failure";
-  } else {
-    doc["temperature_c"] = round(t * 10.0) / 10.0;
-    doc["humidity_percent"] = round(h * 10.0) / 10.0;
+  // 3. ENTERPRISE FIX: EVENT-DRIVEN DELTA SYNC
+  // Only upload to the cloud IF the pump state changed, OR if 1 hour has passed
+  if (pumpStatus != lastPumpStatus || (millis() - lastSyncTime > HEARTBEAT_INTERVAL)) {
+    
+    Serial.println("⚠️ STATE CHANGE DETECTED! Preparing Cloud Sync...");
+
+    JsonDocument doc;
+    doc["moisture_val"] = moistureValue;
+    doc["pump_status"] = pumpStatus;
+    
+    String jsonPayload;
+    serializeJson(doc, jsonPayload);
+
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(SUPABASE_URL);
+      
+      http.addHeader("Content-Type", "application/json");
+      http.addHeader("apikey", SUPABASE_KEY);
+      http.addHeader("Authorization", String("Bearer ") + SUPABASE_KEY);
+      http.addHeader("Prefer", "return=minimal"); 
+
+      int httpResponseCode = http.POST(jsonPayload);
+      
+      if (httpResponseCode > 0) {
+        Serial.print("☁️ Cloud Sync Success! HTTP: ");
+        Serial.println(httpResponseCode);
+        
+        // Update our memory so we don't send this same state again
+        lastPumpStatus = pumpStatus;
+        lastSyncTime = millis();
+      } else {
+        Serial.print("❌ Cloud Sync Failed. HTTP: ");
+        Serial.println(httpResponseCode);
+      }
+      http.end();
+    } else {
+      Serial.println("⚠️ Wi-Fi Disconnected. Reconnecting...");
+      WiFi.reconnect();
+    }
   }
-  
-  doc["moisture_raw"] = moistureValue;
-  doc["moisture_percent"] = moisturePercent;
-  doc["awd_state"] = awdState;
-  doc["relay_motor_active"] = (awdState == "Dry" ? true : false);
 
-  // Serialize exactly as one uniform line ending in '\n'
-  serializeJson(doc, Serial);
-  Serial.println(); 
-
-  // Aggregation delay (10s) ensuring edge node stability and serial coherence
-  delay(10000);
+  // Very short delay so the physical water pump reacts instantly to dry dirt
+  delay(2000); 
 }

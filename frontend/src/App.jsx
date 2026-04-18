@@ -2,10 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Level1Dashboard from './components/Level1Dashboard';
 import AuditorDashboard from './components/AuditorDashboard';
-import FarmerRegistration from './components/FarmerRegistration'; // <-- ADD THIS
-// We will create these two in the next steps:
-// import AuditorDashboard from './components/AuditorDashboard';
-// import FarmerRegistration from './components/FarmerRegistration';
+import FarmerRegistration from './components/FarmerRegistration';
+import FarmerMobileApp from './components/FarmerMobileApp'; // 🚨 1. NEW IMPORT HERE
 
 function Navigation() {
   const location = useLocation();
@@ -29,11 +27,13 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        {/* Note: We keep the top nav for the desktop views, but the mobile app will just be a standalone page */}
         <Navigation />
         <Routes>
           <Route path="/" element={<Level1Dashboard />} />
           <Route path="/auditor" element={<AuditorDashboard />} />
-          <Route path="/register" element={<FarmerRegistration />} /> {/* <-- UPDATE THIS */}
+          <Route path="/register" element={<FarmerRegistration />} />
+          <Route path="/app" element={<FarmerMobileApp />} /> {/* 🚨 2. NEW ROUTE HERE */}
         </Routes>
       </div>
     </Router>
