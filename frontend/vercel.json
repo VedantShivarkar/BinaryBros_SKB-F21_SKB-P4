@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://binarybros-skb-f21-skb-p4-1.onrender.com/api/$1"
+    }
+  ]
+}
