@@ -5,6 +5,7 @@ import time
 import hashlib
 import torch
 import random
+import tempfile
 from dotenv import load_dotenv
 from fastapi import APIRouter, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
@@ -88,9 +89,50 @@ async def whatsapp_webhook(request: Request):
         media_url = form_data.get('MediaUrl0', '')
         media_type = form_data.get('MediaContentType0', '')
 
+        # --- B1: Voice Note Processing (RESTORED) ---
         if 'audio' in media_type:
-             twiml_resp.message("Audio received. Please send text or image for the demo.")
-             return Response(content=twiml_resp.to_xml(), media_type="application/xml")
+            if not groq_client:
+                twiml_resp.message("Voice processing is offline. Please check your Groq API key.")
+                return Response(content=twiml_resp.to_xml(), media_type="application/xml")
+                
+            try:
+                twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+                twilio_auth = os.environ.get("TWILIO_AUTH_TOKEN")
+                
+                audio_response = requests.get(media_url, auth=(twilio_sid, twilio_auth))
+                
+                if audio_response.status_code != 200:
+                    twiml_resp.message("System error downloading your voice note.")
+                    return Response(content=twiml_resp.to_xml(), media_type="application/xml")
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
+                    temp_audio.write(audio_response.content)
+                    temp_path = temp_audio.name
+
+                with open(temp_path, "rb") as file:
+                    transcription = groq_client.audio.transcriptions.create(
+                      file=(temp_path, file.read()),
+                      model="whisper-large-v3"
+                    )
+                user_spoken_text = transcription.text
+                os.remove(temp_path)
+
+                system_prompt = "You are Amrit Vaayu, an agricultural AI. A farmer asked you a question. Reply strictly in the SAME language they used. Keep it very short, helpful, and localized."
+                chat_completion = groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_spoken_text}
+                    ],
+                    model="llama-3.3-70b-versatile", 
+                )
+                
+                twiml_resp.message(f"🎤 {chat_completion.choices[0].message.content}")
+                
+            except Exception as e:
+                twiml_resp.message("Sorry, I couldn't process your voice note. Please type your message.")
+                print(f"❌ Voice AI Error: {e}") 
+                
+            return Response(content=twiml_resp.to_xml(), media_type="application/xml")
 
         # --- B2: Tri-Layer Image Processing & Storage ---
         elif 'image' in media_type:

@@ -74,10 +74,12 @@ export default function Level1Dashboard() {
           <div className="metric-value glow-text-green">{totals.reduction}</div>
         </div>
         <div className="metric-card">
-          <div className="metric-label">Credits Value (Estimated)</div>
-          <div className="metric-value" style={{color: '#ffb800'}}>${(totals.reduction * 0.04).toFixed(2)}</div>
+          <div className="metric-label">Market Value (₹450/Ton)</div>
+          <div className="metric-value" style={{color: '#ffb800'}}>
+            ₹{((totals.reduction / 1000) * 450).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </div>
         </div>
-      </div>
+      </div> {/* <-- THIS DIV WAS MISSING! */}
 
       <div className="glass-panel" style={{gridColumn: 'span 2'}}>
         <h3 style={{ marginBottom: '20px' }}>Cumulative GHG Reduction vs. State Targets</h3>

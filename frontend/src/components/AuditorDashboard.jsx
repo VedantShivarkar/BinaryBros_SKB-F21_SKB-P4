@@ -76,8 +76,11 @@ export default function AuditorDashboard() {
           <div className="glow-text-green" style={{fontSize: '2rem', fontWeight: 'bold'}}>
             {lifetimeCredits.toFixed(2)} <span style={{fontSize: '1rem', color: '#fff'}}>kg CO2e</span>
           </div>
+          <div style={{color: '#ffb800', fontSize: '1.2rem', marginTop: '4px', fontWeight: 'bold'}}>
+            Payout: ₹{((lifetimeCredits / 1000) * 450).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </div>
         </div>
-      </div>
+      </div> {/* <-- THIS IS THE DIV YOU WERE MISSING! */}
 
       {/* The Audit Timeline */}
       <div className="glass-panel full-width">

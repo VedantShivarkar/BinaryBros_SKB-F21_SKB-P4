@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Level1Dashboard from './components/Level1Dashboard';
 import AuditorDashboard from './components/AuditorDashboard';
+import FarmerRegistration from './components/FarmerRegistration'; // <-- ADD THIS
 // We will create these two in the next steps:
 // import AuditorDashboard from './components/AuditorDashboard';
 // import FarmerRegistration from './components/FarmerRegistration';
@@ -31,8 +32,8 @@ function App() {
         <Navigation />
         <Routes>
           <Route path="/" element={<Level1Dashboard />} />
-          <Route path="/auditor" element={<AuditorDashboard />} /> {/* <-- UPDATE THIS */}
-          <Route path="/register" element={<div className="glass-panel" style={{margin: '32px'}}><h2>Farmer Portal (Coming Next)</h2></div>} />
+          <Route path="/auditor" element={<AuditorDashboard />} />
+          <Route path="/register" element={<FarmerRegistration />} /> {/* <-- UPDATE THIS */}
         </Routes>
       </div>
     </Router>
